@@ -1,13 +1,12 @@
 <!doctype html>
-<html lang="es-ES">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Buenos días 03:50</title>
 
-    <!-- Vite: importa CSS desde JS, pero también puedes linkarlo.
-         Aquí lo linkamos para que sea "visible" como archivo separado. -->
-    <link rel="stylesheet" href="/src/styles/main.css" />
+    <!-- CSS en la raíz del proyecto -->
+    <link rel="stylesheet" href="./styles.css" />
   </head>
 
   <body>
@@ -44,6 +43,10 @@
       </div>
     </div>
 
-    <script type="module" src="/src/main.js"></script>
+    <!-- Three.js (si tu script lo usa) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+
+    <!-- JS en la raíz del proyecto -->
+    <script src="./script.js"></script>
   </body>
 </html>
