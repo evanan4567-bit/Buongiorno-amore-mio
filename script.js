@@ -1,4 +1,4 @@
-/* script.js (SIN BLOQUEO + PNGs dentro del 3D) */
+/* script.js (FINAL: sin bloqueo + PNGs 3D + texto impreso en pan) */
 /* global THREE, gsap, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, FilmPass, VignetteShader */
 
 (() => {
@@ -13,6 +13,139 @@
     return `${h}:${m}:${s}`;
   }
 
+  // Texto “impreso” como marca (canvas -> textura)
+  function makeStampedTextPlane(paragraph, renderer, opts = {}) {
+    const {
+      w = 1024,
+      h = 512,
+      padding = 70,
+      lineHeight = 56,
+      font = "600 44px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial",
+      ink = "rgba(70,45,25,0.92)",
+      inkSoft = "rgba(70,45,25,0.35)",
+      paperAlpha = 0.0
+    } = opts;
+
+    const cnv = document.createElement("canvas");
+    cnv.width = w;
+    cnv.height = h;
+    const ctx = cnv.getContext("2d");
+
+    ctx.clearRect(0, 0, w, h);
+    if (paperAlpha > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${paperAlpha})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    function wrapText(text, maxWidth) {
+      const words = text.split(/\s+/);
+      const lines = [];
+      let line = "";
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width > maxWidth) {
+          if (line) lines.push(line);
+          line = word;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    }
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.font = font;
+
+    const maxWidth = w - padding * 2;
+    const lines = wrapText(paragraph, maxWidth).slice(0, 7);
+
+    ctx.shadowColor = inkSoft;
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+
+    ctx.fillStyle = ink;
+
+    const blockH = lines.length * lineHeight;
+    let y = Math.max(padding, (h - blockH) / 2);
+
+    for (const ln of lines) {
+      ctx.fillText(ln, padding, y);
+      y += lineHeight;
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.font = "600 54px ui-sans-serif, system-ui";
+    ctx.fillStyle = "rgba(90,60,30,0.45)";
+    ctx.fillText("💛", w - padding - 70, h - padding - 70);
+
+    const tex = new THREE.CanvasTexture(cnv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy?.() || 8);
+
+    const mat = new THREE.MeshStandardMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 0.95,
+      roughness: 0.95,
+      metalness: 0.0,
+      depthWrite: false
+    });
+
+    const geo = new THREE.PlaneGeometry(2.25, 1.25);
+    return new THREE.Mesh(geo, mat);
+  }
+
+  // Sticker PNG en 3D (plane con transparencia)
+  function makeSticker(url, renderer, baseSize = 1.2) {
+    const texLoader = new THREE.TextureLoader();
+    return new Promise((resolve) => {
+      texLoader.load(
+        url,
+        (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy?.() || 8);
+
+          const mat = new THREE.MeshBasicMaterial({
+            map: tex,
+            transparent: true,
+            depthWrite: false,
+            opacity: 0.98
+          });
+
+          const img = tex.image;
+          const aspect = img && img.width ? (img.width / img.height) : 1.0;
+
+          const w = baseSize * aspect;
+          const h = baseSize;
+
+          const geo = new THREE.PlaneGeometry(w, h);
+          const mesh = new THREE.Mesh(geo, mat);
+
+          // Glow suave atrás (muy sutil)
+          const glowMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.10,
+            depthWrite: false
+          });
+          const glow = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.06, h * 1.06), glowMat);
+          glow.position.z = -0.01;
+          mesh.add(glow);
+
+          resolve(mesh);
+        },
+        undefined,
+        () => {
+          console.warn("No se pudo cargar:", url);
+          resolve(null);
+        }
+      );
+    });
+  }
+
   // ---------------------------
   // DOM
   // ---------------------------
@@ -23,15 +156,13 @@
   const startBtn = document.getElementById("startBtn");
 
   // ---------------------------
-  // SIN BLOQUEO: listo ya
+  // SIN BLOQUEO: listo ya (solo anima el contador 0.4s)
   // ---------------------------
   const target = new Date(Date.now() + 400);
   function tickCountdown() {
     const ms = target - new Date();
     countdownEl.textContent = ms <= 0 ? "💛" : formatHMS(ms);
-    hintEl.textContent = ms <= 0
-      ? "Tocá “Iniciar” 💛"
-      : "Preparando una sorpresa…";
+    hintEl.textContent = ms <= 0 ? "Tocá “Iniciar” 💛" : "Preparando una sorpresa…";
     requestAnimationFrame(tickCountdown);
   }
   tickCountdown();
@@ -109,11 +240,11 @@
     );
     composer.addPass(bloom);
   } else {
-    console.warn("Postprocesado no cargado (no es grave). Revisa scripts examples/* si lo quieres full cine.");
+    console.warn("Postprocesado no cargado (no es grave).");
   }
 
   // ---------------------------
-  // Objetos: anillo + gema
+  // Ring + gem
   // ---------------------------
   const ringGroup = new THREE.Group();
   scene.add(ringGroup);
@@ -145,90 +276,7 @@
   ringGroup.add(gem);
 
   // ---------------------------
-  // ✅ OPCIÓN B: PNGs dentro del 3D (planes con textura y transparencia)
-  // ---------------------------
-  const stickers3D = new THREE.Group();
-  scene.add(stickers3D);
-
-  // Luz suave dedicada a “stickers” para que se vean más lindos
-  const stickerLight = new THREE.PointLight(0xffffff, 0.85, 12);
-  stickerLight.position.set(0, 1.4, 3.5);
-  scene.add(stickerLight);
-
-  const texLoader = new THREE.TextureLoader();
-
-  function makeSticker(url, baseSize = 1.3) {
-    return new Promise((resolve) => {
-      texLoader.load(
-        url,
-        (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
-
-          // Ajuste básico de nitidez / suavizado
-          tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy?.() || 8);
-
-          // Material transparente
-          const mat = new THREE.MeshBasicMaterial({
-            map: tex,
-            transparent: true,
-            depthWrite: false,
-            opacity: 0.98
-          });
-
-          // Mantener proporción según imagen
-          const img = tex.image;
-          const aspect = img && img.width ? (img.width / img.height) : 1.0;
-
-          const w = baseSize * aspect;
-          const h = baseSize;
-
-          const geo = new THREE.PlaneGeometry(w, h);
-          const mesh = new THREE.Mesh(geo, mat);
-
-          // Borde glow “fake” (doble plano atrás)
-          const glowMat = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.10,
-            depthWrite: false
-          });
-          const glow = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.06, h * 1.06), glowMat);
-          glow.position.z = -0.01;
-          mesh.add(glow);
-
-          resolve(mesh);
-        },
-        undefined,
-        () => {
-          console.warn("No se pudo cargar:", url);
-          resolve(null);
-        }
-      );
-    });
-  }
-
-  let panchoPlane = null;
-  let anilloPlane = null;
-
-  // Carga ambos PNG
-  Promise.all([
-    makeSticker("./assets/images/pancho.png", 1.35),
-    makeSticker("./assets/images/anillo.png", 1.15)
-  ]).then(([p, a]) => {
-    if (p) {
-      panchoPlane = p;
-      panchoPlane.position.set(-1.9, -0.25, -0.4);
-      stickers3D.add(panchoPlane);
-    }
-    if (a) {
-      anilloPlane = a;
-      anilloPlane.position.set( 1.9,  0.05, -0.6);
-      stickers3D.add(anilloPlane);
-    }
-  });
-
-  // ---------------------------
-  // “Pancho” 3D procedural (hotdog) - lo dejamos también (queda gracioso)
+  // Hotdog 3D procedural
   // ---------------------------
   const hotdog = new THREE.Group();
   scene.add(hotdog);
@@ -250,6 +298,52 @@
   hotdog.rotation.z = 0.15;
 
   // ---------------------------
+  // Texto romántico IMPRESO en el pan (pequeño testamento)
+  // ---------------------------
+  const mensaje =
+    "Buenos días, amor mío. " +
+    "Gracias por existir y por elegirme. " +
+    "Que hoy te abrace la vida, y que recuerdes que te amo " +
+    "más de lo que puedo decir. " +
+    "Siempre tuyo.";
+
+  const stamped = makeStampedTextPlane(mensaje, renderer);
+  stamped.position.set(0.05, 0.25, 0.32); // más pegado al pan
+  stamped.rotation.y = 0.18;
+  stamped.rotation.x = -0.06;
+  stamped.scale.set(0.95, 0.95, 0.95);
+  hotdog.add(stamped);
+
+  // ---------------------------
+  // PNGs dentro del 3D (orbitando)
+  // ---------------------------
+  const stickers3D = new THREE.Group();
+  scene.add(stickers3D);
+
+  const stickerLight = new THREE.PointLight(0xffffff, 0.85, 12);
+  stickerLight.position.set(0, 1.4, 3.5);
+  scene.add(stickerLight);
+
+  let panchoPlane = null;
+  let anilloPlane = null;
+
+  Promise.all([
+    makeSticker("./assets/images/pancho.png", renderer, 1.35),
+    makeSticker("./assets/images/anillo.png", renderer, 1.15)
+  ]).then(([p, a]) => {
+    if (p) {
+      panchoPlane = p;
+      panchoPlane.position.set(-1.9, -0.25, -0.4);
+      stickers3D.add(panchoPlane);
+    }
+    if (a) {
+      anilloPlane = a;
+      anilloPlane.position.set(1.9, 0.05, -0.6);
+      stickers3D.add(anilloPlane);
+    }
+  });
+
+  // ---------------------------
   // GSAP Timeline
   // ---------------------------
   const tl = gsap.timeline({ paused: true });
@@ -259,7 +353,6 @@
   tl.to(ringGroup.position, { z: 0.0, duration: 6, ease: "power2.out" }, 0);
   tl.to(ringGroup.rotation, { y: Math.PI * 2, duration: 14, ease: "none" }, 0);
 
-  // Hotdog orbit
   tl.to(hotdog.position, { x: 2.8, z: 0.2, duration: 8, ease: "sine.inOut" }, 10);
   tl.to(hotdog.rotation, { y: Math.PI * 2, duration: 8, ease: "none" }, 10);
 
@@ -284,7 +377,7 @@
   const DURATION = 42;
 
   // ---------------------------
-  // Audio (GitHub Pages)
+  // Audio
   // ---------------------------
   let audioEl = null;
   let audioStartPerf = 0;
@@ -310,18 +403,18 @@
   }
 
   // ---------------------------
-  // Render loop (stickers orbit + billboard)
+  // Render loop + orbit stickers + billboard
   // ---------------------------
   function renderFrame() {
     if (started) {
       const t = Math.max(0, (performance.now() - audioStartPerf) / 1000);
       tl.time(Math.min(t, DURATION), false);
 
-      // micro brillo “heartbeat” del oro
+      // brillo oro
       const pulse = 1.0 + Math.sin(t * 3.2) * 0.015;
       ring.material.roughness = 0.22 - (pulse - 1.0) * 2.5;
 
-      // ✅ Stickers orbitando cerca del anillo (PNG)
+      // orbit stickers PNG
       const orbitA = t * 0.55;
       const orbitB = t * 0.42;
 
@@ -329,7 +422,6 @@
         panchoPlane.position.x = Math.cos(orbitA) * 1.8;
         panchoPlane.position.z = Math.sin(orbitA) * 1.2;
         panchoPlane.position.y = -0.15 + Math.sin(t * 1.6) * 0.12;
-        // Billboard: siempre mirar a cámara
         panchoPlane.lookAt(camera.position);
       }
 
@@ -340,7 +432,7 @@
         anilloPlane.lookAt(camera.position);
       }
     } else {
-      // Aun sin iniciar, que se vean posados
+      // Aun sin iniciar, orientar stickers para que se vean
       if (panchoPlane) panchoPlane.lookAt(camera.position);
       if (anilloPlane) anilloPlane.lookAt(camera.position);
     }
