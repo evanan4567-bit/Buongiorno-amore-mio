@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es-ES">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Buenos días 03:50</title>
+
+    <!-- Vite: importa CSS desde JS, pero también puedes linkarlo.
+         Aquí lo linkamos para que sea "visible" como archivo separado. -->
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+
+  <body>
+    <!-- Capa 3D -->
+    <div id="stage">
+      <canvas id="c"></canvas>
+      <!-- Overlay FX CSS (film grain/vignette/glow UI) -->
+      <div id="fx" aria-hidden="true"></div>
+    </div>
+
+    <!-- Overlay UX 03:50 -->
+    <div id="overlay" role="dialog" aria-modal="true">
+      <div class="card">
+        <div class="badge">03:50</div>
+
+        <h1 class="title">
+          <span class="titleLine">buenos días</span>
+          <span class="titleLine subt">amor</span>
+        </h1>
+
+        <div class="countdown" id="countdown">--:--:--</div>
+        <p class="hint" id="hint">
+          A las 03:50 empieza. Deja esto abierto y toca “Iniciar” para activar música.
+        </p>
+
+        <button id="startBtn" class="btn">
+          <span class="btnGlow" aria-hidden="true"></span>
+          Iniciar (música + pantalla completa)
+        </button>
+
+        <div class="micro">
+          Tip: algunos navegadores bloquean autoplay con sonido si no tocas el botón.
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
