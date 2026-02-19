@@ -1,4 +1,4 @@
-/* script.js (DEMO inmediata - sin bloqueo 03:50) */
+/* script.js (SIN BLOQUEO + PNGs dentro del 3D) */
 /* global THREE, gsap, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, FilmPass, VignetteShader */
 
 (() => {
@@ -23,20 +23,15 @@
   const startBtn = document.getElementById("startBtn");
 
   // ---------------------------
-  // DEMO: target inmediato (no espera 03:50)
+  // SIN BLOQUEO: listo ya
   // ---------------------------
-  const target = new Date(Date.now() + 800);
-
+  const target = new Date(Date.now() + 400);
   function tickCountdown() {
     const ms = target - new Date();
-    countdownEl.textContent = formatHMS(ms);
-
-    if (ms <= 0) {
-      hintEl.textContent = "Demo lista. Toca “Iniciar” 💛";
-    } else {
-      hintEl.textContent = "Cargando demo… en breve puedes iniciar 💛";
-    }
-
+    countdownEl.textContent = ms <= 0 ? "💛" : formatHMS(ms);
+    hintEl.textContent = ms <= 0
+      ? "Tocá “Iniciar” 💛"
+      : "Preparando una sorpresa…";
     requestAnimationFrame(tickCountdown);
   }
   tickCountdown();
@@ -83,9 +78,8 @@
   })();
 
   // ---------------------------
-  // Postprocesado (CDN examples => GLOBALS, no THREE.*)
+  // Postprocesado (CDN examples => GLOBALS)
   // ---------------------------
-  // Si faltan los scripts en index.html, evita romper todo:
   const hasPost =
     typeof EffectComposer !== "undefined" &&
     typeof RenderPass !== "undefined" &&
@@ -99,17 +93,14 @@
   if (composer) {
     composer.addPass(new RenderPass(scene, camera));
 
-    // FilmPass (nostalgia)
     const film = new FilmPass(0.35, false);
     composer.addPass(film);
 
-    // Vignette
     const vignette = new ShaderPass(VignetteShader);
     vignette.uniforms.offset.value = 1.2;
     vignette.uniforms.darkness.value = 1.15;
     composer.addPass(vignette);
 
-    // Bloom
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       0.65,
@@ -118,9 +109,7 @@
     );
     composer.addPass(bloom);
   } else {
-    console.warn(
-      "Postprocesado no cargado. Revisa que en index.html estén los scripts de three/examples (EffectComposer, RenderPass, etc.)."
-    );
+    console.warn("Postprocesado no cargado (no es grave). Revisa scripts examples/* si lo quieres full cine.");
   }
 
   // ---------------------------
@@ -156,7 +145,90 @@
   ringGroup.add(gem);
 
   // ---------------------------
-  // “Pancho” 3D procedural (hotdog) - sin loaders
+  // ✅ OPCIÓN B: PNGs dentro del 3D (planes con textura y transparencia)
+  // ---------------------------
+  const stickers3D = new THREE.Group();
+  scene.add(stickers3D);
+
+  // Luz suave dedicada a “stickers” para que se vean más lindos
+  const stickerLight = new THREE.PointLight(0xffffff, 0.85, 12);
+  stickerLight.position.set(0, 1.4, 3.5);
+  scene.add(stickerLight);
+
+  const texLoader = new THREE.TextureLoader();
+
+  function makeSticker(url, baseSize = 1.3) {
+    return new Promise((resolve) => {
+      texLoader.load(
+        url,
+        (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+
+          // Ajuste básico de nitidez / suavizado
+          tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy?.() || 8);
+
+          // Material transparente
+          const mat = new THREE.MeshBasicMaterial({
+            map: tex,
+            transparent: true,
+            depthWrite: false,
+            opacity: 0.98
+          });
+
+          // Mantener proporción según imagen
+          const img = tex.image;
+          const aspect = img && img.width ? (img.width / img.height) : 1.0;
+
+          const w = baseSize * aspect;
+          const h = baseSize;
+
+          const geo = new THREE.PlaneGeometry(w, h);
+          const mesh = new THREE.Mesh(geo, mat);
+
+          // Borde glow “fake” (doble plano atrás)
+          const glowMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.10,
+            depthWrite: false
+          });
+          const glow = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.06, h * 1.06), glowMat);
+          glow.position.z = -0.01;
+          mesh.add(glow);
+
+          resolve(mesh);
+        },
+        undefined,
+        () => {
+          console.warn("No se pudo cargar:", url);
+          resolve(null);
+        }
+      );
+    });
+  }
+
+  let panchoPlane = null;
+  let anilloPlane = null;
+
+  // Carga ambos PNG
+  Promise.all([
+    makeSticker("./assets/images/pancho.png", 1.35),
+    makeSticker("./assets/images/anillo.png", 1.15)
+  ]).then(([p, a]) => {
+    if (p) {
+      panchoPlane = p;
+      panchoPlane.position.set(-1.9, -0.25, -0.4);
+      stickers3D.add(panchoPlane);
+    }
+    if (a) {
+      anilloPlane = a;
+      anilloPlane.position.set( 1.9,  0.05, -0.6);
+      stickers3D.add(anilloPlane);
+    }
+  });
+
+  // ---------------------------
+  // “Pancho” 3D procedural (hotdog) - lo dejamos también (queda gracioso)
   // ---------------------------
   const hotdog = new THREE.Group();
   scene.add(hotdog);
@@ -187,6 +259,7 @@
   tl.to(ringGroup.position, { z: 0.0, duration: 6, ease: "power2.out" }, 0);
   tl.to(ringGroup.rotation, { y: Math.PI * 2, duration: 14, ease: "none" }, 0);
 
+  // Hotdog orbit
   tl.to(hotdog.position, { x: 2.8, z: 0.2, duration: 8, ease: "sine.inOut" }, 10);
   tl.to(hotdog.rotation, { y: Math.PI * 2, duration: 8, ease: "none" }, 10);
 
@@ -237,15 +310,39 @@
   }
 
   // ---------------------------
-  // Render loop
+  // Render loop (stickers orbit + billboard)
   // ---------------------------
   function renderFrame() {
     if (started) {
       const t = Math.max(0, (performance.now() - audioStartPerf) / 1000);
       tl.time(Math.min(t, DURATION), false);
 
+      // micro brillo “heartbeat” del oro
       const pulse = 1.0 + Math.sin(t * 3.2) * 0.015;
       ring.material.roughness = 0.22 - (pulse - 1.0) * 2.5;
+
+      // ✅ Stickers orbitando cerca del anillo (PNG)
+      const orbitA = t * 0.55;
+      const orbitB = t * 0.42;
+
+      if (panchoPlane) {
+        panchoPlane.position.x = Math.cos(orbitA) * 1.8;
+        panchoPlane.position.z = Math.sin(orbitA) * 1.2;
+        panchoPlane.position.y = -0.15 + Math.sin(t * 1.6) * 0.12;
+        // Billboard: siempre mirar a cámara
+        panchoPlane.lookAt(camera.position);
+      }
+
+      if (anilloPlane) {
+        anilloPlane.position.x = Math.cos(orbitB + 2.0) * 1.6;
+        anilloPlane.position.z = Math.sin(orbitB + 2.0) * 1.1;
+        anilloPlane.position.y = 0.15 + Math.sin(t * 1.3 + 1.1) * 0.10;
+        anilloPlane.lookAt(camera.position);
+      }
+    } else {
+      // Aun sin iniciar, que se vean posados
+      if (panchoPlane) panchoPlane.lookAt(camera.position);
+      if (anilloPlane) anilloPlane.lookAt(camera.position);
     }
 
     if (composer) composer.render();
@@ -256,7 +353,7 @@
   renderFrame();
 
   // ---------------------------
-  // Click: iniciar demo YA
+  // Click: iniciar
   // ---------------------------
   startBtn.addEventListener("click", async () => {
     overlay.style.display = "none";
