@@ -1,32 +1,16 @@
-/* script.js (GitHub Pages compatible) */
+/* script.js (DEMO inmediata - sin bloqueo 03:50) */
 /* global THREE, gsap */
 
 (() => {
   // ---------------------------
-  // Util tiempo 03:50
+  // Helpers
   // ---------------------------
-  function getTargetTime({ hour = 3, minute = 50 } = {}) {
-    const now = new Date();
-    const target = new Date(now);
-    target.setHours(hour, minute, 0, 0);
-    if (target <= now) target.setDate(target.getDate() + 1);
-    return target;
-  }
-
   function formatHMS(ms) {
     const total = Math.max(0, Math.floor(ms / 1000));
     const h = String(Math.floor(total / 3600)).padStart(2, "0");
     const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
     const s = String(total % 60).padStart(2, "0");
     return `${h}:${m}:${s}`;
-  }
-
-  function readOverride() {
-    const url = new URL(location.href);
-    const hh = url.searchParams.get("hh");
-    const mm = url.searchParams.get("mm");
-    if (hh && mm) return { hour: Number(hh), minute: Number(mm) };
-    return null;
   }
 
   // ---------------------------
@@ -37,6 +21,25 @@
   const countdownEl = document.getElementById("countdown");
   const hintEl = document.getElementById("hint");
   const startBtn = document.getElementById("startBtn");
+
+  // ---------------------------
+  // DEMO: target inmediato (no espera 03:50)
+  // ---------------------------
+  const target = new Date(Date.now() + 800); // 0.8s para que se vea el contador moverse
+
+  function tickCountdown() {
+    const ms = target - new Date();
+    countdownEl.textContent = formatHMS(ms);
+
+    if (ms <= 0) {
+      hintEl.textContent = "Demo lista. Toca “Iniciar” 💛";
+    } else {
+      hintEl.textContent = "Cargando demo… en breve puedes iniciar 💛";
+    }
+
+    requestAnimationFrame(tickCountdown);
+  }
+  tickCountdown();
 
   // ---------------------------
   // Three.js base
@@ -54,6 +57,7 @@
   const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.05, 120);
   camera.position.set(0, 1.15, 6.2);
 
+  // Lights
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
   const key = new THREE.DirectionalLight(0xfff1d6, 1.2);
   key.position.set(4, 5, 2);
@@ -79,24 +83,27 @@
   })();
 
   // ---------------------------
-  // Postprocesado (nostalgia)
+  // Postprocesado (requiere CDN de examples/* en index.html)
   // ---------------------------
   const composer = new THREE.EffectComposer(renderer);
   composer.addPass(new THREE.RenderPass(scene, camera));
 
+  // FilmPass (nostalgia)
   const film = new THREE.FilmPass(0.35, false);
   composer.addPass(film);
 
+  // Vignette
   const vignette = new THREE.ShaderPass(THREE.VignetteShader);
   vignette.uniforms.offset.value = 1.2;
   vignette.uniforms.darkness.value = 1.15;
   composer.addPass(vignette);
 
+  // Bloom
   const bloom = new THREE.UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.65,
-    0.45,
-    0.85
+    0.65, // strength
+    0.45, // radius
+    0.85  // threshold
   );
   composer.addPass(bloom);
 
@@ -133,10 +140,8 @@
   ringGroup.add(gem);
 
   // ---------------------------
-  // “Pancho” sin GLB: un hotdog 3D procedural (no depende de loaders)
+  // “Pancho” 3D procedural (hotdog) - sin loaders
   // ---------------------------
-  // Esto evita romperte el deploy por loaders/imports.
-  // Si luego quieres GLB, lo hacemos en una segunda vuelta con importmap o bundler.
   const hotdog = new THREE.Group();
   scene.add(hotdog);
 
@@ -157,7 +162,7 @@
   hotdog.rotation.z = 0.15;
 
   // ---------------------------
-  // GSAP Timeline (en segundos)
+  // GSAP Timeline
   // ---------------------------
   const tl = gsap.timeline({ paused: true });
 
@@ -166,7 +171,6 @@
   tl.to(ringGroup.position, { z: 0.0, duration: 6, ease: "power2.out" }, 0);
   tl.to(ringGroup.rotation, { y: Math.PI * 2, duration: 14, ease: "none" }, 0);
 
-  // “Pancho” órbita elegante
   tl.to(hotdog.position, { x: 2.8, z: 0.2, duration: 8, ease: "sine.inOut" }, 10);
   tl.to(hotdog.rotation, { y: Math.PI * 2, duration: 8, ease: "none" }, 10);
 
@@ -191,7 +195,7 @@
   const DURATION = 42;
 
   // ---------------------------
-  // Audio (GitHub Pages): assets/audio/buenos-dias.mp3
+  // Audio (GitHub Pages)
   // ---------------------------
   let audioEl = null;
   let audioStartPerf = 0;
@@ -199,7 +203,7 @@
 
   function ensureAudio() {
     if (audioEl) return audioEl;
-    audioEl = new Audio("./assets/audio/buenos-dias.mp3");
+    audioEl = new Audio("./assets/audio/musica_intro.mp3");
     audioEl.loop = true;
     audioEl.preload = "auto";
     audioEl.volume = 0.55;
@@ -217,27 +221,14 @@
   }
 
   // ---------------------------
-  // Gate 03:50 + countdown
-  // ---------------------------
-  const override = readOverride();
-  const target = getTargetTime(override ?? { hour: 3, minute: 50 });
-
-  function tickCountdown() {
-    const ms = target - new Date();
-    countdownEl.textContent = formatHMS(ms);
-    if (ms <= 0) hintEl.textContent = "Es la hora. Toca “Iniciar” 💛";
-    requestAnimationFrame(tickCountdown);
-  }
-  tickCountdown();
-
-  // ---------------------------
-  // Render loop (sincroniza timeline a audio)
+  // Render loop
   // ---------------------------
   function loop() {
     if (started) {
       const t = Math.max(0, (performance.now() - audioStartPerf) / 1000);
       tl.time(Math.min(t, DURATION), false);
 
+      // micro brillo “heartbeat”
       const pulse = 1.0 + Math.sin(t * 3.2) * 0.015;
       ring.material.roughness = 0.22 - (pulse - 1.0) * 2.5;
     }
@@ -248,7 +239,7 @@
   loop();
 
   // ---------------------------
-  // Click: desbloquea audio + fullscreen
+  // Click: iniciar demo YA
   // ---------------------------
   startBtn.addEventListener("click", async () => {
     overlay.style.display = "none";
@@ -256,7 +247,7 @@
     await requestWakeLock();
 
     const a = ensureAudio();
-    try { await a.play(); } catch (e) { console.warn("Autoplay bloqueado, intenta tocar otra vez.", e); }
+    try { await a.play(); } catch (e) { console.warn("Autoplay bloqueado, toca de nuevo.", e); }
 
     audioStartPerf = performance.now();
     started = true;
