@@ -1,5 +1,5 @@
 /* script.js (DEMO inmediata - sin bloqueo 03:50) */
-/* global THREE, gsap */
+/* global THREE, gsap, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, FilmPass, VignetteShader */
 
 (() => {
   // ---------------------------
@@ -25,7 +25,7 @@
   // ---------------------------
   // DEMO: target inmediato (no espera 03:50)
   // ---------------------------
-  const target = new Date(Date.now() + 800); // 0.8s para que se vea el contador moverse
+  const target = new Date(Date.now() + 800);
 
   function tickCountdown() {
     const ms = target - new Date();
@@ -83,29 +83,45 @@
   })();
 
   // ---------------------------
-  // Postprocesado (requiere CDN de examples/* en index.html)
+  // Postprocesado (CDN examples => GLOBALS, no THREE.*)
   // ---------------------------
-  const composer = new THREE.EffectComposer(renderer);
-  composer.addPass(new THREE.RenderPass(scene, camera));
+  // Si faltan los scripts en index.html, evita romper todo:
+  const hasPost =
+    typeof EffectComposer !== "undefined" &&
+    typeof RenderPass !== "undefined" &&
+    typeof ShaderPass !== "undefined" &&
+    typeof UnrealBloomPass !== "undefined" &&
+    typeof FilmPass !== "undefined" &&
+    typeof VignetteShader !== "undefined";
 
-  // FilmPass (nostalgia)
-  const film = new THREE.FilmPass(0.35, false);
-  composer.addPass(film);
+  const composer = hasPost ? new EffectComposer(renderer) : null;
 
-  // Vignette
-  const vignette = new THREE.ShaderPass(THREE.VignetteShader);
-  vignette.uniforms.offset.value = 1.2;
-  vignette.uniforms.darkness.value = 1.15;
-  composer.addPass(vignette);
+  if (composer) {
+    composer.addPass(new RenderPass(scene, camera));
 
-  // Bloom
-  const bloom = new THREE.UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.65, // strength
-    0.45, // radius
-    0.85  // threshold
-  );
-  composer.addPass(bloom);
+    // FilmPass (nostalgia)
+    const film = new FilmPass(0.35, false);
+    composer.addPass(film);
+
+    // Vignette
+    const vignette = new ShaderPass(VignetteShader);
+    vignette.uniforms.offset.value = 1.2;
+    vignette.uniforms.darkness.value = 1.15;
+    composer.addPass(vignette);
+
+    // Bloom
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.65,
+      0.45,
+      0.85
+    );
+    composer.addPass(bloom);
+  } else {
+    console.warn(
+      "Postprocesado no cargado. Revisa que en index.html estén los scripts de three/examples (EffectComposer, RenderPass, etc.)."
+    );
+  }
 
   // ---------------------------
   // Objetos: anillo + gema
@@ -223,20 +239,21 @@
   // ---------------------------
   // Render loop
   // ---------------------------
-  function loop() {
+  function renderFrame() {
     if (started) {
       const t = Math.max(0, (performance.now() - audioStartPerf) / 1000);
       tl.time(Math.min(t, DURATION), false);
 
-      // micro brillo “heartbeat”
       const pulse = 1.0 + Math.sin(t * 3.2) * 0.015;
       ring.material.roughness = 0.22 - (pulse - 1.0) * 2.5;
     }
 
-    composer.render();
-    requestAnimationFrame(loop);
+    if (composer) composer.render();
+    else renderer.render(scene, camera);
+
+    requestAnimationFrame(renderFrame);
   }
-  loop();
+  renderFrame();
 
   // ---------------------------
   // Click: iniciar demo YA
@@ -259,6 +276,6 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    composer.setSize(window.innerWidth, window.innerHeight);
+    if (composer) composer.setSize(window.innerWidth, window.innerHeight);
   });
 })();
