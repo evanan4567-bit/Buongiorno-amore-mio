@@ -3,9 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>Buenos días 03:50</title>
+    <title>Buenos días, amor 💛</title>
 
-    <!-- CSS en la raíz del proyecto -->
     <link rel="stylesheet" href="./styles.css" />
   </head>
 
@@ -13,54 +12,55 @@
     <!-- Capa 3D -->
     <div id="stage">
       <canvas id="c"></canvas>
-      <!-- Overlay FX CSS (film grain/vignette/glow UI) -->
       <div id="fx" aria-hidden="true"></div>
     </div>
 
-    <!-- Overlay UX -->
+    <!-- Overlay romántico -->
     <div id="overlay" role="dialog" aria-modal="true">
       <div class="card">
-        <div class="badge">03:50</div>
+        <div class="badge">para vos</div>
 
         <h1 class="title">
           <span class="titleLine">buenos días</span>
           <span class="titleLine subt">amor</span>
         </h1>
 
-        <div class="countdown" id="countdown">--:--:--</div>
+        <div class="countdown" id="countdown">💛</div>
+
         <p class="hint" id="hint">
-          Toca “Iniciar” y mira la demo ahora 💛
+          Hice esto para vos, para que empieces el día con una sonrisa.
+          Tocá “Iniciar” y miralo con música ✨
         </p>
 
         <button id="startBtn" class="btn">
           <span class="btnGlow" aria-hidden="true"></span>
-          Iniciar (música + pantalla completa)
+          Iniciar ✨ (música + pantalla completa)
         </button>
 
         <div class="micro">
-          Tip: algunos navegadores bloquean autoplay con sonido si no tocas el botón.
+          Tip: si el sonido no arranca, tocá el botón una vez más (a veces el navegador lo pide).
         </div>
       </div>
     </div>
 
     <!-- Three.js core -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.152.0/build/three.min.js"></script>
 
     <!-- Three.js postprocessing (examples) -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://unpkg.com/three@0.152.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://unpkg.com/three@0.152.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://unpkg.com/three@0.152.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://unpkg.com/three@0.152.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
     <!-- FilmPass requiere FilmShader -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/shaders/FilmShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/FilmPass.js"></script>
+    <script src="https://unpkg.com/three@0.152.0/examples/js/shaders/FilmShader.js"></script>
+    <script src="https://unpkg.com/three@0.152.0/examples/js/postprocessing/FilmPass.js"></script>
 
     <!-- Vignette shader -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/shaders/VignetteShader.js"></script>
+    <script src="https://unpkg.com/three@0.152.0/examples/js/shaders/VignetteShader.js"></script>
 
     <!-- GSAP -->
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"></script>
 
     <!-- Tu script -->
     <script src="./script.js"></script>
