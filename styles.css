@@ -1,4 +1,4 @@
-/* src/styles/main.css */
+/* styles.css */
 
 /* Base */
 :root{
@@ -210,4 +210,10 @@ html, body{
 /* Accesibilidad: reduce motion */
 @media (prefers-reduced-motion: reduce){
   #fx, .titleLine, .btnGlow{ animation: none !important; }
+}
+
+/* --- Mejoras: full-screen real para canvas / stage (GitHub Pages friendly) --- */
+#stage, #c{
+  width: 100vw;
+  height: 100vh;
 }
