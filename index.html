@@ -17,7 +17,7 @@
       <div id="fx" aria-hidden="true"></div>
     </div>
 
-    <!-- Overlay UX 03:50 -->
+    <!-- Overlay UX -->
     <div id="overlay" role="dialog" aria-modal="true">
       <div class="card">
         <div class="badge">03:50</div>
@@ -29,7 +29,7 @@
 
         <div class="countdown" id="countdown">--:--:--</div>
         <p class="hint" id="hint">
-          A las 03:50 empieza. Deja esto abierto y toca “Iniciar” para activar música.
+          Toca “Iniciar” y mira la demo ahora 💛
         </p>
 
         <button id="startBtn" class="btn">
@@ -43,10 +43,26 @@
       </div>
     </div>
 
-    <!-- Three.js (si tu script lo usa) -->
+    <!-- Three.js core -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
 
-    <!-- JS en la raíz del proyecto -->
+    <!-- Three.js postprocessing (examples) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <!-- FilmPass requiere FilmShader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/shaders/FilmShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/postprocessing/FilmPass.js"></script>
+
+    <!-- Vignette shader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/shaders/VignetteShader.js"></script>
+
+    <!-- GSAP -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+    <!-- Tu script -->
     <script src="./script.js"></script>
   </body>
 </html>
