@@ -1,4 +1,4 @@
-/* script.js (FINAL: sin bloqueo + PNGs 3D + texto impreso en pan) */
+/* script.js FINAL (sin bloqueo + PNGs 3D + texto tostado en pan) */
 /* global THREE, gsap, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, FilmPass, VignetteShader */
 
 (() => {
@@ -13,17 +13,28 @@
     return `${h}:${m}:${s}`;
   }
 
-  // Texto “impreso” como marca (canvas -> textura)
-  function makeStampedTextPlane(paragraph, renderer, opts = {}) {
+  // Ruido simple para borde “tostado” irregular
+  function mulberry32(seed) {
+    return function () {
+      let t = (seed += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Texto tostado (canvas -> textura)
+  function makeToastedTextPlane(paragraph, renderer, opts = {}) {
     const {
       w = 1024,
       h = 512,
-      padding = 70,
-      lineHeight = 56,
-      font = "600 44px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial",
-      ink = "rgba(70,45,25,0.92)",
-      inkSoft = "rgba(70,45,25,0.35)",
-      paperAlpha = 0.0
+      padding = 72,
+      lineHeight = 46,
+      font = "600 36px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial",
+      // “tostado”
+      ink = "rgba(35,18,10,0.96)",
+      edge = "rgba(20,10,5,0.55)",   // borde/quemado
+      soft = "rgba(0,0,0,0.25)"      // sombra suave
     } = opts;
 
     const cnv = document.createElement("canvas");
@@ -32,11 +43,8 @@
     const ctx = cnv.getContext("2d");
 
     ctx.clearRect(0, 0, w, h);
-    if (paperAlpha > 0) {
-      ctx.fillStyle = `rgba(255,255,255,${paperAlpha})`;
-      ctx.fillRect(0, 0, w, h);
-    }
 
+    // Wrap texto
     function wrapText(text, maxWidth) {
       const words = text.split(/\s+/);
       const lines = [];
@@ -54,31 +62,44 @@
       return lines;
     }
 
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
     ctx.font = font;
-
     const maxWidth = w - padding * 2;
-    const lines = wrapText(paragraph, maxWidth).slice(0, 7);
-
-    ctx.shadowColor = inkSoft;
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-
-    ctx.fillStyle = ink;
+    const lines = wrapText(paragraph, maxWidth).slice(0, 8);
 
     const blockH = lines.length * lineHeight;
     let y = Math.max(padding, (h - blockH) / 2);
 
+    // 1) Primero: “quemadito” (stroke irregular)
+    // Truco: dibujamos el texto varias veces con pequeños offsets aleatorios
+    const rand = mulberry32(1337);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+
     for (const ln of lines) {
+      // “halo tostado” alrededor
+      ctx.fillStyle = edge;
+      ctx.shadowColor = soft;
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 2;
+
+      // offsets para borde irregular (como tostado real)
+      for (let i = 0; i < 8; i++) {
+        const ox = (rand() - 0.5) * 2.2;
+        const oy = (rand() - 0.5) * 2.2;
+        ctx.fillText(ln, padding + ox, y + oy);
+      }
+
+      // 2) Luego: tinta principal tostada
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = ink;
       ctx.fillText(ln, padding, y);
+
       y += lineHeight;
     }
 
-    ctx.shadowBlur = 0;
+    // Corazón “grabado”
     ctx.font = "600 54px ui-sans-serif, system-ui";
-    ctx.fillStyle = "rgba(90,60,30,0.45)";
+    ctx.fillStyle = "rgba(35,18,10,0.35)";
     ctx.fillText("💛", w - padding - 70, h - padding - 70);
 
     const tex = new THREE.CanvasTexture(cnv);
@@ -88,17 +109,18 @@
     const mat = new THREE.MeshStandardMaterial({
       map: tex,
       transparent: true,
-      opacity: 0.95,
-      roughness: 0.95,
+      opacity: 0.98,
+      roughness: 0.98,
       metalness: 0.0,
-      depthWrite: false
+      depthWrite: false,
+      depthTest: true
     });
 
     const geo = new THREE.PlaneGeometry(2.25, 1.25);
     return new THREE.Mesh(geo, mat);
   }
 
-  // Sticker PNG en 3D (plane con transparencia)
+  // Sticker PNG en 3D
   function makeSticker(url, renderer, baseSize = 1.2) {
     const texLoader = new THREE.TextureLoader();
     return new Promise((resolve) => {
@@ -117,14 +139,13 @@
 
           const img = tex.image;
           const aspect = img && img.width ? (img.width / img.height) : 1.0;
-
           const w = baseSize * aspect;
           const h = baseSize;
 
           const geo = new THREE.PlaneGeometry(w, h);
           const mesh = new THREE.Mesh(geo, mat);
 
-          // Glow suave atrás (muy sutil)
+          // Glow suave
           const glowMat = new THREE.MeshBasicMaterial({
             color: 0xffffff,
             transparent: true,
@@ -156,7 +177,7 @@
   const startBtn = document.getElementById("startBtn");
 
   // ---------------------------
-  // SIN BLOQUEO: listo ya (solo anima el contador 0.4s)
+  // SIN BLOQUEO
   // ---------------------------
   const target = new Date(Date.now() + 400);
   function tickCountdown() {
@@ -239,8 +260,6 @@
       0.85
     );
     composer.addPass(bloom);
-  } else {
-    console.warn("Postprocesado no cargado (no es grave).");
   }
 
   // ---------------------------
@@ -298,20 +317,17 @@
   hotdog.rotation.z = 0.15;
 
   // ---------------------------
-  // Texto romántico IMPRESO en el pan (pequeño testamento)
+  // Texto TOSTADO en el pan (centrado, legible)
   // ---------------------------
   const mensaje =
-    "Buenos días, amor mío. " +
-    "Gracias por existir y por elegirme. " +
-    "Que hoy te abrace la vida, y que recuerdes que te amo " +
-    "más de lo que puedo decir. " +
-    "Siempre tuyo.";
+    "Buenos días, amor mío. Gracias por existir y por elegirme. " +
+    "Que hoy te abrace la vida y que recuerdes que te amo " +
+    "más de lo que puedo decir. Siempre tuyo.";
 
-  const stamped = makeStampedTextPlane(mensaje, renderer);
-  stamped.position.set(0.05, 0.25, 0.32); // más pegado al pan
-  stamped.rotation.y = 0.18;
-  stamped.rotation.x = -0.06;
-  stamped.scale.set(0.95, 0.95, 0.95);
+  const stamped = makeToastedTextPlane(mensaje, renderer);
+  stamped.position.set(0.0, 0.22, 0.28);
+  stamped.rotation.set(-0.03, 0.0, 0.0);
+  stamped.scale.set(0.72, 0.72, 0.72);
   hotdog.add(stamped);
 
   // ---------------------------
@@ -392,7 +408,6 @@
     return audioEl;
   }
 
-  // Wake lock best-effort
   let wakeLock = null;
   async function requestWakeLock() {
     try { wakeLock = await navigator.wakeLock?.request?.("screen"); } catch { /* ignore */ }
@@ -403,18 +418,16 @@
   }
 
   // ---------------------------
-  // Render loop + orbit stickers + billboard
+  // Render loop
   // ---------------------------
   function renderFrame() {
     if (started) {
       const t = Math.max(0, (performance.now() - audioStartPerf) / 1000);
       tl.time(Math.min(t, DURATION), false);
 
-      // brillo oro
       const pulse = 1.0 + Math.sin(t * 3.2) * 0.015;
       ring.material.roughness = 0.22 - (pulse - 1.0) * 2.5;
 
-      // orbit stickers PNG
       const orbitA = t * 0.55;
       const orbitB = t * 0.42;
 
@@ -432,7 +445,6 @@
         anilloPlane.lookAt(camera.position);
       }
     } else {
-      // Aun sin iniciar, orientar stickers para que se vean
       if (panchoPlane) panchoPlane.lookAt(camera.position);
       if (anilloPlane) anilloPlane.lookAt(camera.position);
     }
