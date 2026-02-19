@@ -1,0 +1,213 @@
+/* src/styles/main.css */
+
+/* Base */
+:root{
+  --bg: #05050a;
+  --fg: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.72);
+  --warm: #ffd7a6;
+  --cool: #bfe8ff;
+  --glass: rgba(20,20,30,.35);
+  --glass-2: rgba(20,20,30,.55);
+  --ring: #ffcf7b;
+  --shadow: rgba(0,0,0,.55);
+}
+
+html, body{
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Stage */
+#stage{
+  position: fixed;
+  inset: 0;
+  isolation: isolate; /* para overlays */
+}
+
+#c{
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* FX overlay: film grain + vignette + subtle scanlines */
+#fx{
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+
+  /* Vignette base */
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 100%),
+
+    /* scanlines muy sutiles */
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.02) 0px,
+      rgba(255,255,255,.02) 1px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0) 4px
+    ),
+
+    /* "grain" aproximado con múltiples gradientes */
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,.05), rgba(0,0,0,0) 45%),
+    radial-gradient(circle at 80% 30%, rgba(255,255,255,.04), rgba(0,0,0,0) 40%),
+    radial-gradient(circle at 30% 80%, rgba(255,255,255,.03), rgba(0,0,0,0) 45%);
+  mix-blend-mode: overlay;
+  opacity: .55;
+
+  animation: grainMove 2.2s steps(2) infinite;
+}
+
+@keyframes grainMove{
+  0%   { transform: translate3d(0,0,0) scale(1.02); filter: saturate(1.05); }
+  25%  { transform: translate3d(-1%,1%,0) scale(1.02); filter: saturate(1.02); }
+  50%  { transform: translate3d(1%,-1%,0) scale(1.02); filter: saturate(1.08); }
+  75%  { transform: translate3d(-1%,-1%,0) scale(1.02); filter: saturate(1.03); }
+  100% { transform: translate3d(0,0,0) scale(1.02); filter: saturate(1.05); }
+}
+
+/* Overlay dialog */
+#overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+
+  display: grid;
+  place-items: center;
+  padding: 24px;
+
+  /* glassy darkness */
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.35), rgba(0,0,0,.88));
+}
+
+.card{
+  width: min(560px, 92vw);
+  border-radius: 24px;
+  padding: 22px 18px 18px;
+  background: linear-gradient(180deg, var(--glass), var(--glass-2));
+  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+  border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.badge{
+  display:inline-flex;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  font-size: 12px;
+  text-transform: uppercase;
+
+  color: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+/* Título “super wow” con brillo */
+.title{
+  margin: 14px 0 8px;
+  line-height: 1.0;
+  font-size: clamp(34px, 6vw, 54px);
+  letter-spacing: -0.02em;
+}
+
+.titleLine{
+  display:block;
+  text-shadow:
+    0 2px 18px rgba(255, 205, 122, .22),
+    0 0 28px rgba(191, 232, 255, .10);
+  animation: titleBreath 3.2s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+.titleLine.subt{
+  color: rgba(255,255,255,.8);
+  font-weight: 600;
+  font-size: 0.88em;
+  margin-top: 6px;
+}
+
+@keyframes titleBreath{
+  0%,100% { transform: translateY(0) scale(1); filter: saturate(1.03); }
+  50%     { transform: translateY(-2px) scale(1.01); filter: saturate(1.10); }
+}
+
+/* Countdown */
+.countdown{
+  font-variant-numeric: tabular-nums;
+  font-size: 42px;
+  margin: 10px 0 6px;
+  letter-spacing: .08em;
+  opacity: .92;
+}
+
+/* Texto auxiliar */
+.hint{
+  margin: 0 0 14px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* Botón con glow animado (sin imágenes) */
+.btn{
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+
+  border: 0;
+  border-radius: 16px;
+  padding: 14px 16px;
+
+  color: rgba(10,10,14,.96);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: .01em;
+
+  background: linear-gradient(90deg, #ffd7a6, #bfe8ff);
+  box-shadow:
+    0 14px 40px rgba(0,0,0,.38),
+    0 0 40px rgba(255, 215, 166, .12);
+  cursor: pointer;
+  transform: translateZ(0);
+}
+
+.btn:active{
+  transform: scale(.99);
+}
+
+.btnGlow{
+  position:absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,.65), rgba(255,255,255,0) 55%),
+    radial-gradient(circle at 70% 70%, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+  opacity: .55;
+  animation: btnGlowMove 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes btnGlowMove{
+  0%,100% { transform: translate3d(-6%, -3%, 0) rotate(0deg); }
+  50%     { transform: translate3d( 6%,  3%, 0) rotate(8deg); }
+}
+
+.micro{
+  margin-top: 12px;
+  opacity: .72;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* Accesibilidad: reduce motion */
+@media (prefers-reduced-motion: reduce){
+  #fx, .titleLine, .btnGlow{ animation: none !important; }
+}
